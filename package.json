@@ -1,0 +1,31 @@
+{
+  "name": "login-app",
+  "version": "1.0.0",
+  "description": "Application with login prompt and leaderboard interface",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx nodemon node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "login-app"
+  },
+  "keywords": [
+    "login",
+    "logout",
+    "leaderboard",
+    "passport"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-session": "^1.17.1",
+    "find-or-create": "^2.0.0",
+    "mongoose": "^5.9.10",
+    "mongoose-findorcreate": "^3.0.0",
+    "nodemon": "^2.0.3",
+    "passport": "^0.4.1",
+    "passport-local": "^1.0.0"
+  }
+}

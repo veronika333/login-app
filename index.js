@@ -6,12 +6,17 @@ const bodyParser = require('body-parser');
 const findOrCreate = require('mongoose-findorcreate');
 const session = require('express-session');
 const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+
+
 app.use(bodyParser.urlencoded({extended: false}));
+
 app.use(session({ secret: 'cats '}));
 app.use(passport.initialize());
 app.use(passport.session());
 
 mongoose.connect('mongodb://localhost:27017/veronika-learning-mongodb');
+
 const db = mongoose.connection;
 db.on('error', (err) => { console.log(`An error has occured while connecting to DB: ${err}`);});
 db.on('open', () => { console.log(`Connected to database. `); });
@@ -28,22 +33,73 @@ userSchema.plugin(findOrCreate);
 
 const User = mongoose.model('User', userSchema); 
 
+//redirecting function: logged in users cannot see again the login page or register page
+function redirectLoginUser(req, res, next) {
+    if(req.isAuthenticated()){
+        res.redirect('/');
+    } else {
+        next();
+    }
+}
+
+//redirecting non-logged in users
+function redirectNonLoginUser(req, res, next) {
+    if(req.isAuthenticated()){
+        res.redirect('/login');
+    } else {
+        next();
+    }
+}
+
+function authenticateUser(username, password, done){
+    User.findOne({ username: username }, (err, record) => {
+        if (err) {
+            return done(err);
+        }
+        if (!record){
+return done(null, false, { message: 'Incorrect username. '});
+        }
+        if (record.password !== password) {
+            return done(null, false, { message: 'Incorrect password. '});
+        }
+        return done(null, record);
+    });
+}
+//passport uses the logic which is explained above
+passport.use(new LocalStrategy(authenticateUser));
+
+passport.serializeUser((user, done) => {
+done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+User.findById(id, (err, record) => {
+    if (err) { done(err); }
+    if (record) { done(null, record); }
+});
+});
+
 // only logged in user should be able to reach this endpoint
-app.get('/', (req, res) => {
+app.get('/', redirectNonLoginUser, (req, res) => {
     res.sendFile(__dirname + '/api/views/pages/home.html');
 });
 
 // Login
-app.get('/login', (req, res) => {
+app.get('/login', redirectLoginUser, (req, res) => {
     res.sendFile(__dirname + '/api/views/pages/login.html');
 });
 
-app.post('/login/send', (req, res) => {
-    // add logic to authentificate user
+// add logic to authentificate user, check passport documentation
+app.post('/login/send', passport.authenticate('local', { 
+    successRedirect: '/',
+    failureRedirect: '/login' }));
+
+app.get('/logout', (req, res) => {
+    req.logout();
+    res.redirect('/login');
 });
 
-
-app.get('/register', (req, res) => {
+app.get('/register', redirectLoginUser, (req, res) => {
     res.sendFile(__dirname + '/api/views/pages/register.html');
 });
 
